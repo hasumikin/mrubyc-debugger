@@ -5,7 +5,7 @@ mrubyc-debugger is a TUI (test user interface) for developing [mruby/c](https://
 
 ## Demo
 
-[demo](https://raw.githubusercontent.com/wiki/hasumikin/mrubyc-debugger/images/demo-1.gif)
+![demo](https://raw.githubusercontent.com/wiki/hasumikin/mrubyc-debugger/images/demo-1.gif)
 
 ## Features
 
