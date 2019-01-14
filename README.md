@@ -1,7 +1,9 @@
-# Mrubyc::Debugger
+# mrubyc-debugger
 
 mrubyc-debugger is a TUI (test user interface) for developing [mruby/c](https://github.com/mrubyc/mrubyc) application. It runs mruby/c tasks () CRuby ::Thread on your terminal.
 'task' is a term of microcontrollers. In short, infinite loop like `while true; hoge(); end` .
+
+Caution: This gem is still experimental and not released yet.
 
 ## Demo
 
