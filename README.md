@@ -34,7 +34,7 @@ Or install it yourself as:
 ## Usage
 
 Assuming you are using [mrubyc-utils](https://github.com/hasumikin/mrubyc-utils) to manage your project and [rbenv](https://github.com/rbenv/rbenv) to manage Ruby versions.
-This means you have `.mrubycconfig` file in your top directory.
+This means you have `.mrubycconfig` file in your top directory of your project.
 
 Besides, you have to locate mruby task files that are the target of debugging like `mrblib/tasks/main.rb`
 
