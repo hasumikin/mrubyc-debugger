@@ -2,6 +2,9 @@
 
 module Mrubyc
   module Debugger
-    VERSION = "0.1.0"
+    class Mrblib
+      class << self
+      end
+    end
   end
 end
