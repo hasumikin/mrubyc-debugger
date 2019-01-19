@@ -5,11 +5,12 @@ require "mrubyc/debugger/config"
 require "mrubyc/debugger/mrblib"
 require "mrubyc/debugger/window"
 require "thor"
+require "yaml"
 
 module Mrubyc
   module Debugger
     class Error < StandardError; end
-    # Your code goes here...
+
     class Bootstrap < Thor
       default_command :start
 
@@ -26,15 +27,17 @@ module Mrubyc
           puts "\e[0m"
           exit(1)
         end
-        pwd = Dir.pwd
+        mrblib_dir = if File.exists?('.mrubycconfig')
+          config = YAML.file_load('.mrubycconfig')
+          config['mrubyc_mrblib_dir']
+        else
+          ENV['GEM_ENV'] == 'test' ? 'spec/fixtures/files' : 'mrblib'
+        end
+        models = Dir.glob(File.join(Dir.pwd, mrblib_dir, "models", "*.rb"))
+        tasks = Dir.glob(File.join(Dir.pwd, mrblib_dir, "tasks", "*.rb"))
         mrblibs = {
-          models: [
-            "#{pwd}/spec/fixtures/files/say.rb",
-          ],
-          tasks: [
-            "#{pwd}/spec/fixtures/files/task_1.rb",
-            "#{pwd}/spec/fixtures/files/task_2.rb",
-          ]
+          models: models,
+          tasks: tasks
         }
 #        Mrubyc::Debugger::Mrblib.setup_models(mrblibs[:models])
         Mrubyc::Debugger::Window.start(mrblibs, options[:delay] || 0)

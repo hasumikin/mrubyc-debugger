@@ -1,4 +1,3 @@
-using DebugQueue
 while !$mutex
   relinquish()
 end
@@ -16,7 +15,7 @@ while true
     $mutex.unlock
   else
     say.hello
-    #say.not_implemented
+    say.not_implemented
     sleep 1
   end
   sleep 1

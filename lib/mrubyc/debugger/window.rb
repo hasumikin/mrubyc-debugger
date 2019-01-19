@@ -2,6 +2,8 @@
 
 require "mrubyc/debugger/ext/kernel"
 require "mrubyc/debugger/ext/debug_queue"
+require 'mrubyc/debugger/console.rb'
+require "tempfile"
 
 module Mrubyc
   module Debugger
@@ -9,7 +11,6 @@ module Mrubyc
       class << self
         def start(mrblibs, delay)
           tasks = mrblibs[:tasks]
-          tasks.unshift('mrubyc/debugger/task/console.rb')
           $debug_queues = []
           $event_queues = []
           tasks.size.times do
@@ -17,21 +18,30 @@ module Mrubyc
             $event_queues << Queue.new
           end
           threads = []
+          temp_tasks = []
           setup_models(mrblibs[:models])
           tasks.each_with_index do |task, index|
+            tempfile = Tempfile.new
+            temp_tasks << tempfile.path
+            tempfile.puts "using DebugQueue"
+            tempfile.puts File.read(task)
+            tempfile.close
             threads << Thread.new(index) do
               Thread.current[:index] = index
-              load task
+              load temp_tasks[index]
             end
             $debug_queues[index] << {
               level: :info,
               body: "Task: #{File.basename(task)} started"
             }
           end
+          threads << Thread.new do
+            console = Console.new(temp_tasks)
+            console.run
+          end
           @@mutex = Mutex.new
-          trace(tasks, delay).enable do
+          trace(temp_tasks, delay).enable do
             threads.each do|thr|
-            #  puts thr
               thr.join
             end
           end
@@ -42,7 +52,6 @@ module Mrubyc
             number = nil
             caller_locations(1, 1).each do |caller_location|
               tasks.each_with_index do |task, index|
-                next if index == 0
                 number = index if caller_location.to_s.include?(File.basename(task))
               end
               if tp.method_id == :puts
@@ -65,26 +74,20 @@ module Mrubyc
         end
 
         def setup_models(models)
-          trace = TracePoint.new(:class) do |tp|
-            if tp.defined_class != nil
-            #tp.defined_class.class_evel do
-            Say.class_evel do
-              def method_missing
-                if Thread.current && $debug_queues
+          models.each do |model|
+            load model
+            class_name = File.basename(model, '.rb').split('_').map(&:capitalize).join
+            Kernel.const_get(class_name).class_eval do
+              def method_missing(method_name, *args)
+                if $debug_queues
                   $debug_queues[Thread.current[:index]] << {
-                    level: :warn,
+                    level: :error,
                     body: "method_missing: ##{method_name}"
                   }
                 else
                   super
                 end
               end
-            end
-            end
-          end
-          trace.enable do
-            models.each do |model|
-              require model
             end
           end
         end

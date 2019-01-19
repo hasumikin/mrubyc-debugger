@@ -1,4 +1,3 @@
-using DebugQueue
 sleep 1
 $mutex = Mutex.new
 

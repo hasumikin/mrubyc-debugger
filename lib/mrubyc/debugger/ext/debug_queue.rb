@@ -3,10 +3,11 @@
 module DebugQueue
   refine Kernel do
     def puts(text)
-      if Thread.current && $puts_queues
-        $puts_queues[Thread.current[:index]] << {
+      if $debug_queues
+        $debug_queues[Thread.current[:index]] << {
           level: :debug,
-          body: text }
+          body: text
+        }
       end
     end
   end
