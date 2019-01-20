@@ -36,7 +36,7 @@ module Mrubyc
             }
           end
           threads << Thread.new do
-            console = Console.new(temp_tasks)
+            console = Mrubyc::Debugger::Console.new(temp_tasks)
             console.run
           end
           @@mutex = Mutex.new
