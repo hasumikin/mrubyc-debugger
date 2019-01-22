@@ -16,6 +16,8 @@ Caution: This gem is still experimental and not released yet.
 - Originally mrubyc-debugger was designed for the sake of mruby/c application. But you may be able to use it to see CRuby's multi threads program, especially for learning Thread class
 
 ## Features in future (possibly)
+
+- Much more colorful. Like syntax highlighting
 - Breakpoint
 - Setting variable value
 - Cooperation with [mrubyc-test](https://github.com/hasumikin/mrubyc-test)
