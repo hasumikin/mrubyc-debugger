@@ -15,6 +15,12 @@ Caution: This gem is still experimental and not released yet.
 - Visualize your tasks, its local variables and debug printing of `puts`
 - Originally mrubyc-debugger was designed for the sake of mruby/c application. But you may be able to use it to see CRuby's multi threads program, especially for learning Thread class
 
+## Features in future (possibly)
+- Breakpoint
+- Setting variable value
+- Cooperation with [mrubyc-test](https://github.com/hasumikin/mrubyc-test)
+  - Using stub and mock declarations in test cases to simulate an integrated circumstance
+
 ## Installation
 
 Add this line to your application's Gemfile:
@@ -65,12 +71,6 @@ At the top directory:
 To make your tasks slow:
 
     $ mrubyc-debugger --delay 1
-
-## Development
-
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
-
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
 
 ## Contributing
 
