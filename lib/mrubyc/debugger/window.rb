@@ -11,13 +11,16 @@ module Mrubyc
       class << self
         def start(mrblibs, delay)
           loops = mrblibs[:loops]
+          $breakpoints = []
           $debug_queues = []
           $event_queues = []
+          $sleep_queues = []
           loops.size.times do
             $debug_queues << Queue.new
             $event_queues << Queue.new
+            $sleep_queues << Queue.new
           end
-          threads = []
+          $threads = []
           temp_loops = []
           setup_models(mrblibs[:models])
           loops.each_with_index do |loop, index|
@@ -26,7 +29,7 @@ module Mrubyc
             tempfile.puts "using DebugQueue"
             tempfile.puts File.read(loop)
             tempfile.close
-            threads << Thread.new(index) do
+            $threads << Thread.new(index) do
               Thread.current[:index] = index
               load temp_loops[index]
             end
@@ -35,13 +38,13 @@ module Mrubyc
               body: "loop: #{File.basename(loop)} started"
             }
           end
-          threads << Thread.new do
+          $threads << Thread.new do
             console = Mrubyc::Debugger::Console.new(temp_loops)
             console.run
           end
           @@mutex = Mutex.new
           trace(temp_loops, delay).enable do
-            threads.each do|thr|
+            $threads.each do|thr|
               thr.join
             end
           end
@@ -59,15 +62,18 @@ module Mrubyc
               end
               if number
                 @@mutex.lock
-                message = {
+                event = {
                   method_id: tp.method_id,
                   lineno: tp.lineno,
                   caller_location: caller_location,
                   tp_binding: tp.binding
                 }
-                $event_queues[number].push message
+                $event_queues[number].push event
                 @@mutex.unlock
                 sleep delay if tp.event == :line
+                if $breakpoints.any?{|bp| bp == [number, tp.lineno - 1]}
+                  Thread.stop
+                end
               end
             end
           end

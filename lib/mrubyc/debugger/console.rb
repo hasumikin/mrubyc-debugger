@@ -30,6 +30,17 @@ module Mrubyc
           end
           @srcs << src
         end
+        cbreak # raw?
+        noecho # stop echo back
+        set_escdelay 25 # response speed. default 1000
+        @cursor_pos = { x: 0, y: 1}
+        @sleepers = Array.new(@srcs.size)
+        @events = Array.new(@srcs.size)
+      end
+
+      def set_escdelay(ms)
+        Curses.ESCDELAY = ms
+      rescue NotImplementedError
       end
 
       def make_pair
@@ -85,6 +96,8 @@ module Mrubyc
 
       def run(show_colors_at_start = false)
         mainwin = init_screen
+        mainwin.keypad true
+        mainwin.timeout = 0
         curs_set(0)
         start_color
         make_pair
@@ -101,10 +114,19 @@ module Mrubyc
             wins << win
           end
           while true
+            @key = mainwin.getch
+            handle_key
             num.times do |i|
-            wins[i][:src].resize(lines - 6, cols / num)
-            wins[i][:out].resize(1, cols / num)
-            wins[i][:var].resize(5, cols / num)
+              wins[i][:src].resize(lines - 6, cols / num)
+              wins[i][:out].resize(1, cols / num)
+              wins[i][:var].resize(5, cols / num)
+              unless $sleep_queues[i].empty?
+                @sleepers[i] = $sleep_queues[i].pop
+              end
+              if @sleepers[i] && @sleepers[i] < Process.clock_gettime(Process::CLOCK_MONOTONIC_RAW, :millisecond)
+                @sleepers[i] = nil
+                $threads[i].run
+              end
               unless $debug_queues[i].empty?
                 message = $debug_queues[i].pop
                 wins[i][:out].setpos(0, 0)
@@ -117,28 +139,37 @@ module Mrubyc
                 wins[i][:out].refresh
               end
               unless $event_queues[i].empty?
-                tp = $event_queues[i].pop
+                @events[i] = $event_queues[i].pop
+              end
+              if @events[i]
                 (1..(wins[i][:src].maxy - 2)).each do |y|
                   wins[i][:src].setpos(y, 1)
                   if !@srcs[i][y]
                     wins[i][:src].addstr ' ' * wins[i][:src].maxx
                   else
-                    lineno = tp[:lineno] - 1 # hide `using PutsQueue` line
+                    lineno = @events[i][:lineno] - 1 # hide `using DebugQueue` line
+                    wins[i][:src].attron(A_UNDERLINE) if y == @cursor_pos[:y] && i == @cursor_pos[:x]
                     wins[i][:src].attron(A_REVERSE) if y == lineno
-                    wins[i][:src].attron(color_pair 16)
+                    lineno_color = if $breakpoints.any? {|bp| bp == [i, y] }
+                      21
+                    else
+                      16
+                    end
+                    wins[i][:src].attron(color_pair lineno_color)
                     wins[i][:src].attron(A_BOLD)
                     wins[i][:src].addstr y.to_s.rjust(2).to_s
                     wins[i][:src].attroff(A_BOLD)
-                    wins[i][:src].attroff(color_pair 16)
+                    wins[i][:src].attroff(color_pair lineno_color)
                     wins[i][:src].addstr ' ' + @srcs[i][y]
                     wins[i][:src].attroff(A_REVERSE) if y == lineno
+                    wins[i][:src].attroff(A_UNDERLINE) if y == @cursor_pos[:y] && i == @cursor_pos[:x]
                   end
                 end
                 wins[i][:src].box(?|,?-,?+)
                 wins[i][:src].refresh
                 vars = {}
-                tp[:tp_binding].local_variables.each do |var|
-                  vars[var] = tp[:tp_binding].local_variable_get(var).inspect
+                @events[i][:tp_binding].local_variables.each do |var|
+                  vars[var] = @events[i][:tp_binding].local_variable_get(var).inspect
                 end
                 vars.each_with_index do |(k,v),j|
                   wins[i][:var].setpos(j+1, 2)
@@ -153,9 +184,85 @@ module Mrubyc
             refresh
           end
         ensure
-          close_screen
-          system 'stty sane'
+          finish
         end
+      end
+
+    private
+
+      def handle_key
+        case @key
+        when 27 # ESC
+          exit(0)
+        when "h"
+          go_left
+        when "j"
+          go_down
+        when "k"
+          go_up
+        when "l"
+          go_right
+        when " "
+          breakpoint
+        when "r"
+          resume
+        end
+      end
+
+      def resume
+        2.times do # resume from $mutex line needs twice
+          $threads.each do |thread|
+            thread.run if thread.stop?
+          end
+        end
+      end
+
+      def breakpoint
+        unless $breakpoints.delete([@cursor_pos[:x], @cursor_pos[:y]])
+          $breakpoints << [@cursor_pos[:x], @cursor_pos[:y]]
+        end
+      end
+
+      def go_left
+        @cursor_pos[:x] -= 1
+        if @cursor_pos[:x] < 0
+          @cursor_pos[:x] = @srcs.size - 1
+        end
+        rescue_overflow
+      end
+
+      def go_right
+        @cursor_pos[:x] += 1
+        if @cursor_pos[:x] >= @srcs.size
+          @cursor_pos[:x] = 0
+        end
+        rescue_overflow
+      end
+
+      def rescue_overflow
+        if @cursor_pos[:y] >= @srcs[@cursor_pos[:x]].size
+          @cursor_pos[:y] = @srcs[@cursor_pos[:x]].size - 1
+        end
+      end
+
+      def go_down
+        @cursor_pos[:y] += 1
+        if @cursor_pos[:y] >= @srcs[@cursor_pos[:x]].size
+          @cursor_pos[:y] = 1
+        end
+      end
+
+      def go_up
+        @cursor_pos[:y] -= 1
+        if @cursor_pos[:y] == 0
+          @cursor_pos[:y] = @srcs[@cursor_pos[:x]].size - 1
+        end
+      end
+
+      def finish
+        close_screen
+        system "stty sane"
+        puts "finished"
       end
 
     end

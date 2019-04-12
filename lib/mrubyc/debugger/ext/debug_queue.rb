@@ -10,5 +10,11 @@ module DebugQueue
         }
       end
     end
+
+    def sleep(sec)
+      current_msec = Process.clock_gettime(Process::CLOCK_MONOTONIC_RAW, :millisecond)
+      $sleep_queues[Thread.current[:index]] << (current_msec + (sec * 1000)) # wakeup at
+      Thread.stop
+    end
   end
 end
