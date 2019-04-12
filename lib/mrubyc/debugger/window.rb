@@ -10,49 +10,49 @@ module Mrubyc
     class Window
       class << self
         def start(mrblibs, delay)
-          tasks = mrblibs[:tasks]
+          loops = mrblibs[:loops]
           $debug_queues = []
           $event_queues = []
-          tasks.size.times do
+          loops.size.times do
             $debug_queues << Queue.new
             $event_queues << Queue.new
           end
           threads = []
-          temp_tasks = []
+          temp_loops = []
           setup_models(mrblibs[:models])
-          tasks.each_with_index do |task, index|
+          loops.each_with_index do |loop, index|
             tempfile = Tempfile.new
-            temp_tasks << tempfile.path
+            temp_loops << tempfile.path
             tempfile.puts "using DebugQueue"
-            tempfile.puts File.read(task)
+            tempfile.puts File.read(loop)
             tempfile.close
             threads << Thread.new(index) do
               Thread.current[:index] = index
-              load temp_tasks[index]
+              load temp_loops[index]
             end
             $debug_queues[index] << {
               level: :info,
-              body: "Task: #{File.basename(task)} started"
+              body: "loop: #{File.basename(loop)} started"
             }
           end
           threads << Thread.new do
-            console = Mrubyc::Debugger::Console.new(temp_tasks)
+            console = Mrubyc::Debugger::Console.new(temp_loops)
             console.run
           end
           @@mutex = Mutex.new
-          trace(temp_tasks, delay).enable do
+          trace(temp_loops, delay).enable do
             threads.each do|thr|
               thr.join
             end
           end
         end
 
-        def trace(tasks, delay)
+        def trace(loops, delay)
           TracePoint.new(:c_call, :call, :line) do |tp|
             number = nil
             caller_locations(1, 1).each do |caller_location|
-              tasks.each_with_index do |task, index|
-                number = index if caller_location.to_s.include?(File.basename(task))
+              loops.each_with_index do |loop, index|
+                number = index if caller_location.to_s.include?(File.basename(loop))
               end
               if tp.method_id == :puts
                 #sleep delay

@@ -19,11 +19,11 @@ module Mrubyc
         COLOR_YELLOW
       ]
 
-      def initialize(tasks)
+      def initialize(loops)
         @srcs = []
-        tasks.each do |task|
+        loops.each do |loop|
           src = []
-          File.open(task, 'r') do |f|
+          File.open(loop, 'r') do |f|
             f.each_line do |line|
               src << line
             end

@@ -13,7 +13,7 @@ Caution: This gem is still experimental and not released yet.
 ## Features
 
 - TUI (text user interface) powered by [Curses](https://github.com/ruby/curses)
-- Visualize your loops, its local variables and debug printing of `puts`
+- Visualize your loops, their local variables and debug printing of `puts`
 - Originally mrubyc-debugger was designed for the sake of mruby/c application. But you may be able to use it to see CRuby's multi threads program, especially for learning Thread class
 
 ## Features in future (possibly)
