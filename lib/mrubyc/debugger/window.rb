@@ -26,7 +26,7 @@ module Mrubyc
           loops.each_with_index do |loop, index|
             tempfile = Tempfile.new
             temp_loops << tempfile.path
-            tempfile.puts "using DebugQueue"
+            tempfile.puts "using DebugQueue; sleep 2"
             tempfile.puts File.read(loop)
             tempfile.close
             $threads << Thread.new(index) do
@@ -55,10 +55,10 @@ module Mrubyc
             number = nil
             caller_locations(1, 1).each do |caller_location|
               loops.each_with_index do |loop, index|
-                number = index if caller_location.to_s.include?(File.basename(loop))
-              end
-              if tp.method_id == :puts
-                #sleep delay
+                if caller_location.to_s.include?(File.basename(loop))
+                  number = index
+                  break
+                end
               end
               if number
                 @@mutex.lock
@@ -68,12 +68,13 @@ module Mrubyc
                   caller_location: caller_location,
                   tp_binding: tp.binding
                 }
-                $event_queues[number].push event
-                @@mutex.unlock
-                sleep delay if tp.event == :line
                 if $breakpoints.any?{|bp| bp == [number, tp.lineno - 1]}
+                  event[:breakpoint] = true
                   Thread.stop
                 end
+                $event_queues[number].push event
+                sleep delay if tp.event == :line
+                @@mutex.unlock
               end
             end
           end

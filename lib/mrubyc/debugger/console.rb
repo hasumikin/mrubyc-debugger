@@ -19,6 +19,8 @@ module Mrubyc
         COLOR_YELLOW
       ]
 
+      ESCDELAY = 25
+
       def initialize(loops)
         @srcs = []
         loops.each do |loop|
@@ -32,7 +34,7 @@ module Mrubyc
         end
         cbreak # raw?
         noecho # stop echo back
-        set_escdelay 25 # response speed. default 1000
+        set_escdelay ESCDELAY # response speed. default 1000
         @cursor_pos = { x: 0, y: 1}
         @sleepers = Array.new(@srcs.size)
         @events = Array.new(@srcs.size)
@@ -167,28 +169,122 @@ module Mrubyc
                 end
                 wins[i][:src].box(?|,?-,?+)
                 wins[i][:src].refresh
-                vars = {}
-                @events[i][:tp_binding].local_variables.each do |var|
-                  vars[var] = @events[i][:tp_binding].local_variable_get(var).inspect
+                if @events[i][:breakpoint]
+                  command_line(wins[i][:var], @events[i][:tp_binding])
+                else
+                  vars = {}
+                  @events[i][:tp_binding].local_variables.each do |var|
+                    vars[var] = @events[i][:tp_binding].local_variable_get(var).inspect
+                  end
+                  vars.each_with_index do |(k,v),j|
+                    wins[i][:var].setpos(j+1, 2)
+                    wins[i][:var].addstr (k.to_s + ' => ' + v).ljust(wins[i][:var].maxx)
+                  end
+                  wins[i][:var].attron(color_pair 16)
+                  wins[i][:var].box(?|,?-,?+)
+                  wins[i][:var].attroff(color_pair 16)
+                  wins[i][:var].refresh
                 end
-                vars.each_with_index do |(k,v),j|
-                  wins[i][:var].setpos(j+1, 2)
-                  wins[i][:var].addstr (k.to_s + ' => ' + v).ljust(wins[i][:var].maxx)
-                end
-                wins[i][:var].attron(color_pair 16)
-                wins[i][:var].box(?|,?-,?+)
-                wins[i][:var].attroff(color_pair 16)
-                wins[i][:var].refresh
               end
             end
             refresh
           end
+        rescue => e
+          sleep 5
+          #binding.irb
         ensure
           finish
         end
       end
 
     private
+
+      def clear_var_win(win)
+        (1..3).each do |l|
+          win.setpos(l, 1)
+          win << " " * (win.maxx - 2)
+        end
+      end
+
+      def command_line(win, bd)
+        set_escdelay = -1
+        loop do
+          clear_var_win(win)
+          win.setpos(1, 1)
+          win << " > "
+          win.refresh
+          str = getstr_with_echo(win)
+          case str
+          when "exit"
+            clear_var_win(win)
+            win.refresh
+            resume
+            return
+          when ""
+            # do nothing
+          else
+            win.setpos(2, 2)
+            win << " => "
+            index = str.index("=")
+            args = if index
+              [
+                str[0, index - 1].strip,
+                str[index + 1, str.size - index].strip
+              ]
+            else
+              str.strip
+            end
+            begin
+              result = if args.is_a?(Array)
+                bd.local_variable_set(args[0], eval(args[1]))
+              else
+                bd.local_variable_get(args)
+              end
+              win << result.to_s[0, win.maxx - 7]
+            rescue => e
+              win << e.to_s[0, win.maxx - 7]
+            end
+            win.setpos(3, 2)
+            win << "Enter to continue"
+            win.refresh
+            loop do
+              case (c = Curses.getch)
+              when nil
+                # ignore
+              when KEY_CTRL_J # Enter
+                break
+              end
+            end
+          end
+        end
+      ensure
+        set_escdelay = ESCDELAY
+      end
+
+      def getstr_with_echo(win)
+        str = "".dup
+        loop do
+          case (c = Curses.getch)
+          when nil
+            # ignore
+          when KEY_CTRL_J # Enter
+            break if str.size > 0
+          when String
+            win << c
+            win.refresh
+            str << c
+          when KEY_BACKSPACE
+            if str.size > 0
+              win.setpos(1, str.size + 3)
+              win << " "
+              win.setpos(1, str.size + 3)
+              win.refresh
+              str.chop!
+            end
+          end
+        end
+        str
+      end
 
       def handle_key
         case @key
