@@ -180,10 +180,7 @@ module Mrubyc
                     wins[i][:var].setpos(j+1, 2)
                     wins[i][:var].addstr (k.to_s + ' => ' + v).ljust(wins[i][:var].maxx)
                   end
-                  wins[i][:var].attron(color_pair 16)
-                  wins[i][:var].box(?|,?-,?+)
-                  wins[i][:var].attroff(color_pair 16)
-                  wins[i][:var].refresh
+                  box_var_win(wins[i][:var])
                 end
               end
             end
@@ -191,7 +188,6 @@ module Mrubyc
           end
         rescue => e
           sleep 5
-          #binding.irb
         ensure
           finish
         end
@@ -206,8 +202,14 @@ module Mrubyc
         end
       end
 
-      def command_line(win, bd)
-        set_escdelay = -1
+      def box_var_win(win)
+        win.attron(color_pair 16)
+        win.box(?|,?-,?+)
+        win.attroff(color_pair 16)
+        win.refresh
+      end
+
+      def command_line(win, tp_binding)
         loop do
           clear_var_win(win)
           win.setpos(1, 1)
@@ -227,18 +229,20 @@ module Mrubyc
             win << " => "
             index = str.index("=")
             args = if index
-              [
-                str[0, index - 1].strip,
-                str[index + 1, str.size - index].strip
-              ]
+              [ str[0, index - 1].strip,
+                str[index + 1, str.size - index].strip ]
             else
               str.strip
             end
             begin
               result = if args.is_a?(Array)
-                bd.local_variable_set(args[0], eval(args[1]))
+                tp_binding.local_variable_set(args[0], eval(args[1]))
               else
-                bd.local_variable_get(args)
+                if tp_binding.local_variables.map(&:to_s).include?(args)
+                  tp_binding.local_variable_get(args)
+                else
+                  eval(args)
+                end
               end
               win << result.to_s[0, win.maxx - 7]
             rescue => e
@@ -246,19 +250,17 @@ module Mrubyc
             end
             win.setpos(3, 2)
             win << "Enter to continue"
-            win.refresh
+            box_var_win(win)
             loop do
-              case (c = Curses.getch)
+              case getch
               when nil
-                # ignore
+                sleep ESCDELAY / 1000.0
               when KEY_CTRL_J # Enter
                 break
               end
             end
           end
         end
-      ensure
-        set_escdelay = ESCDELAY
       end
 
       def getstr_with_echo(win)
