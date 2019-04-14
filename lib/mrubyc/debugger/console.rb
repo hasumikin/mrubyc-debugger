@@ -180,7 +180,7 @@ module Mrubyc
                     wins[i][:var].setpos(j+1, 2)
                     wins[i][:var].addstr (k.to_s + ' => ' + v).ljust(wins[i][:var].maxx)
                   end
-                  box_var_win(wins[i][:var])
+                  box_var_win(wins[i][:var], 16)
                 end
               end
             end
@@ -202,14 +202,15 @@ module Mrubyc
         end
       end
 
-      def box_var_win(win)
-        win.attron(color_pair 16)
+      def box_var_win(win, color)
+        win.attron(color_pair color)
         win.box(?|,?-,?+)
-        win.attroff(color_pair 16)
+        win.attroff(color_pair color)
         win.refresh
       end
 
       def command_line(win, tp_binding)
+        box_var_win(win, 21)
         loop do
           clear_var_win(win)
           win.setpos(1, 1)
@@ -250,7 +251,7 @@ module Mrubyc
             end
             win.setpos(3, 2)
             win << "Enter to continue"
-            box_var_win(win)
+            box_var_win(win, 21)
             loop do
               case getch
               when nil
