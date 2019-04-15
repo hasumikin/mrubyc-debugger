@@ -68,12 +68,14 @@ module Mrubyc
                   caller_location: caller_location,
                   tp_binding: tp.binding
                 }
-                if $breakpoints.any?{|bp| bp == [number, tp.lineno - 1]}
+                # breakpoint will be duplicated if method_id is not nil (== event is not :line)
+                if tp.method_id.nil? && $breakpoints.any?{|bp| bp == [number, tp.lineno - 1]}
                   event[:breakpoint] = true
-                  Thread.stop
                 end
                 $event_queues[number].push event
                 sleep delay if tp.event == :line
+                # should stop after push event and sleep
+                Thread.stop if event[:breakpoint] == true
                 @@mutex.unlock
               end
             end

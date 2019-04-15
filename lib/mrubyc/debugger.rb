@@ -6,6 +6,7 @@ require "mrubyc/debugger/mrblib"
 require "mrubyc/debugger/window"
 require "thor"
 require "yaml"
+require "logger"
 
 module Mrubyc
   module Debugger
@@ -15,7 +16,8 @@ module Mrubyc
       default_command :start
 
       desc 'start', 'start debug window'
-      option :delay, type: :numeric
+      option :delay, type: :numeric, default: 0.1,   banner: "Each of lines have a delay of this time (unit: second)"
+      option :debug, type: :boolean, default: false, banner: "Log appears at /tmp/mrubyc-debugger.log"
       def start
         result = Mrubyc::Debugger::Config.check
         unless result
@@ -45,7 +47,13 @@ module Mrubyc
         }
 #        Mrubyc::Debugger::Mrblib.setup_models(mrblibs[:models])
         Mrubyc::Debugger::Window.setup_models(mrblibs[:models])
-        Mrubyc::Debugger::Window.start(mrblibs, options[:delay] || 0)
+        $logger = Logger.new("/tmp/mrubyc-debugger.log")
+        $logger.level = if options[:debug]
+          Logger::DEBUG
+        else
+          Logger::INFO
+        end
+        Mrubyc::Debugger::Window.start(mrblibs, options[:delay])
       end
     end
   end

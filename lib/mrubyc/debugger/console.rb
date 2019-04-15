@@ -143,7 +143,10 @@ module Mrubyc
               unless $event_queues[i].empty?
                 @events[i] = $event_queues[i].pop
               end
+              # needs this condition in spite of being used at the first time
+              # TODO refactor
               if @events[i]
+                threads_debug_print(i)
                 (1..(wins[i][:src].maxy - 2)).each do |y|
                   wins[i][:src].setpos(y, 1)
                   if !@srcs[i][y]
@@ -170,7 +173,8 @@ module Mrubyc
                 wins[i][:src].box(?|,?-,?+)
                 wins[i][:src].refresh
                 if @events[i][:breakpoint]
-                  command_line(wins[i][:var], @events[i][:tp_binding])
+                  command_line(i, wins[i][:var], @events[i][:tp_binding])
+                  @events[i][:breakpoint] = nil # to avoid #sleep line remains Thread.stop
                 else
                   vars = {}
                   @events[i][:tp_binding].local_variables.each do |var|
@@ -209,7 +213,7 @@ module Mrubyc
         win.refresh
       end
 
-      def command_line(win, tp_binding)
+      def command_line(i, win, tp_binding)
         box_var_win(win, 21)
         loop do
           clear_var_win(win)
@@ -221,7 +225,7 @@ module Mrubyc
           when "exit"
             clear_var_win(win)
             win.refresh
-            resume
+            resume(i)
             return
           when ""
             # do nothing
@@ -303,17 +307,11 @@ module Mrubyc
           go_right
         when " "
           breakpoint
-        when "r"
-          resume
         end
       end
 
-      def resume
-        2.times do # resume from $mutex line needs twice
-          $threads.each do |thread|
-            thread.run if thread.stop?
-          end
-        end
+      def resume(i)
+        $threads[i].run if $threads[i].stop?
       end
 
       def breakpoint
@@ -362,6 +360,14 @@ module Mrubyc
         close_screen
         system "stty sane"
         puts "finished"
+      end
+
+      def threads_debug_print(i)
+        $logger.debug @events[i].to_s if @events[i]
+        $logger.debug $breakpoints.to_s
+        $threads.each_with_index do |thread, index|
+          $logger.debug "thread #{index}: stop? => #{thread.stop?}"
+        end
       end
 
     end
