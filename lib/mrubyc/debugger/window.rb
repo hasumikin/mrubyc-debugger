@@ -22,7 +22,6 @@ module Mrubyc
           end
           $threads = []
           temp_loops = []
-          setup_models(mrblibs[:models])
           loops.each_with_index do |loop, index|
             tempfile = Tempfile.new
             temp_loops << tempfile.path
@@ -82,16 +81,21 @@ module Mrubyc
           end
         end
 
-        def setup_models(models)
+        def setup_models(models, stubs)
           models.each do |model|
             load model
             class_name = File.basename(model, '.rb').split('_').map(&:capitalize).join
             Kernel.const_get(class_name).class_eval do
+              stubs["classes"][class_name]["instance_methods"].each do |m|
+                define_method(m["name"]) do
+                  eval m["value"]
+                end
+              end
               def method_missing(method_name, *args)
                 if $debug_queues
                   $debug_queues[Thread.current[:index]] << {
                     level: :error,
-                    body: "method_missing: ##{method_name}"
+                    body: "method_missing: #{self.class}##{method_name}"
                   }
                 else
                   super

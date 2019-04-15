@@ -46,7 +46,13 @@ module Mrubyc
           loops: loops
         }
 #        Mrubyc::Debugger::Mrblib.setup_models(mrblibs[:models])
-        Mrubyc::Debugger::Window.setup_models(mrblibs[:models])
+        yaml = File.join(Dir.pwd, "mrubyc-debugger.yml")
+        stubs = if File.exists?(yaml)
+          YAML.load_file(yaml)
+        else
+          {}
+        end
+        Mrubyc::Debugger::Window.setup_models(mrblibs[:models], stubs)
         $logger = Logger.new("/tmp/mrubyc-debugger.log")
         $logger.level = if options[:debug]
           Logger::DEBUG
