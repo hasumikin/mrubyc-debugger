@@ -10,6 +10,11 @@ Caution: This gem is still experimental and not released yet.
 
 ![demo](https://raw.githubusercontent.com/wiki/hasumikin/mrubyc-debugger/images/demo-1.gif)
 
+## Usage
+
+- h:←, j:↓, k:↑, l:→ move the cursor to select a line
+- SPACE toggles on and off of a breakpoint on the line which the cursor points
+
 ## Features
 
 - TUI (text user interface) powered by [Curses](https://github.com/ruby/curses)
@@ -19,8 +24,6 @@ Caution: This gem is still experimental and not released yet.
 ## Features in future (possibly)
 
 - Much more colorful. Like syntax highlighting
-- Breakpoint
-- Setting variable value
 - Cooperation with [mrubyc-test](https://github.com/hasumikin/mrubyc-test)
   - Using stub and mock declarations in test cases to simulate an integrated circumstance
 
@@ -64,6 +67,7 @@ This is an example of ESP32 project:
 │      └── loops                # Place your loop files here
 │            ├── main.rb        # A loop something like awaiting for user input
 │            └── sub.rb         # Another loop eg) BLE status observation, LED blinking, etc.
+├── mrubyc-debugger.yml         # You can configure stub methods in form of YAML
 └── sdkconfig
 ```
 
