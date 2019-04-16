@@ -8,7 +8,7 @@ Caution: This gem is still experimental and not released yet.
 
 ## Demo
 
-![demo](https://raw.githubusercontent.com/wiki/hasumikin/mrubyc-debugger/images/demo-1.gif)
+![demo](https://raw.githubusercontent.com/wiki/hasumikin/mrubyc-debugger/images/demo-2.gif)
 
 ## Usage
 
