@@ -86,9 +86,11 @@ module Mrubyc
             load model
             class_name = File.basename(model, '.rb').split('_').map(&:capitalize).join
             Kernel.const_get(class_name).class_eval do
-              stubs["classes"][class_name]["instance_methods"].each do |m|
-                define_method(m["name"]) do
-                  eval m["value"]
+              if stubs["classes"] && stubs["classes"][class_name] && stubs["classes"][class_name]["instance_methods"]
+                stubs["classes"][class_name]["instance_methods"].each do |m|
+                  define_method(m["name"]) do
+                    eval m["value"]
+                  end
                 end
               end
               def method_missing(method_name, *args)
