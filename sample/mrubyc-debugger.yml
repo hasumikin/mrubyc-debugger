@@ -1,0 +1,6 @@
+classes:
+  MyClass:
+    instance_methods:
+      - name:  stub_method
+        value: rand(100)
+
