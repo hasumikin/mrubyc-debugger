@@ -65,9 +65,9 @@ This is an example of ESP32 project:
 │            ├── class_name.rb  # models are tested by mrubyc-test
 │            └── my_class.rb    # models are tested by mrubyc-test
 │      └── loops                # Place your loop files here
-│            ├── main.rb        # A loop something like awaiting for user input
-│            └── sub.rb         # Another loop eg) BLE status observation, LED blinking, etc.
-├── mrubyc-debugger.yml         # You can configure stub methods in form of YAML
+│            ├── master.rb      # A loop something like awaiting for user input
+│            └── slave.rb       # Another loop eg) BLE status observation, LED blinking, etc.
+├── mrubyc-debugger.yml          # You can configure stub methods in form of YAML
 └── sdkconfig
 ```
 
